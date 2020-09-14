@@ -1,14 +1,45 @@
 ---
-title: "Draft R Markdown document"
-author: "Your Name"
+title: "Draft for sequencing data download"
+author: "Morten Dall"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
 ```
 
+##Function to download GEO data
 ```{r}
-# Code chunk
+gds <- getGEO("GSE126848",GSEMatrix = T, getGPL = F)
+
+idxRNA <- pData(gds$GSE126848_series_matrix.txt.gz)[["molecule_ch1"]]=="polyA RNA"
+metadata <- pData(gds$GSE126848_series_matrix.txt.gz)[idxRNA, c( "gender:ch1", "disease:ch1", "description")]
+write.table(metadata, file = "metadata.csv")
+
+sampleNames <- rownames(pData(gds$GSE126848_series_matrix.txt.gz))[idxRNA]
+
+geoFile <- getGEOSuppFiles("GSE126848")
+
+count_matrix <- read.delim("~/R/tmp/RNAseqdownload/doc/GSE126848/GSE126848_Gene_counts_raw.txt.gz", header=FALSE)
+
+rownames(count_matrix) <- count_matrix$V1
+count_matrix <- count_matrix %>% 
+  dplyr::select(-1)
+
+column_order = t(count_matrix[1,])
+column_order <- as.data.frame(column_order)
+column_order[1,]<- as.character(column_order[1,])
+
+column_ID <- metadata %>% 
+  select(c(description, `disease:ch1`)) 
+colnames(column_ID)[1] = "key"
+
+column_order <- left_join(column_order,column_ID, by = "key")
+
+count_matrix_anno <- count_matrix
+colnames(count_matrix_anno) <- count_matrix_anno[1,]
+count_matrix_anno[1,] <- column_order[,2]
+
 ```
 
