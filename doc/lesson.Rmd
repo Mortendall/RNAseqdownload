@@ -6,6 +6,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(fs)
+library(vroom)
 
 ```
 
@@ -13,19 +15,25 @@ library(tidyverse)
 ```{r}
 gds <- getGEO("GSE126848",GSEMatrix = T, getGPL = F)
 
-idxRNA <- pData(gds$GSE126848_series_matrix.txt.gz)[["molecule_ch1"]]=="polyA RNA"
 metadata <- pData(gds$GSE126848_series_matrix.txt.gz)[idxRNA, c( "gender:ch1", "disease:ch1", "description")]
 write.table(metadata, file = "metadata.csv")
 
-sampleNames <- rownames(pData(gds$GSE126848_series_matrix.txt.gz))[idxRNA]
 
-geoFile <- getGEOSuppFiles("GSE126848")
+geoFile <- getGEOSuppFiles("GSE126848", makeDirectory = F,baseDir = here("data-raw/"))
 
-count_matrix <- read.delim("~/R/tmp/RNAseqdownload/doc/GSE126848/GSE126848_Gene_counts_raw.txt.gz", header=FALSE)
+geo_file <- dir_ls(here("data-raw/"), 
+                          regexp = "txt", 
+                          recurse = TRUE)
 
-rownames(count_matrix) <- count_matrix$V1
+count_matrix <- vroom(geo_file)
+
+
+matrix_key <- count_matrix$key
 count_matrix <- count_matrix %>% 
   dplyr::select(-1)
+
+rownames(count_matrix) <- matrix_key
+View(count_matrix)
 
 column_order = t(count_matrix[1,])
 column_order <- as.data.frame(column_order)
