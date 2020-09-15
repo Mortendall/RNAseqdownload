@@ -3,8 +3,9 @@ library(tidyverse)
 library(fs)
 library(vroom)
 library(Biobase)
+library(here)
 
-#' Download GEO file
+#' Download GEO files
 #'
 #' @param GEOID An ID for the GEO database https://www.ncbi.nlm.nih.gov/geo/
 #'
@@ -13,36 +14,34 @@ library(Biobase)
 download_GEO_file <- function(GEOID){
   gds <- GEOquery::getGEO(GEOID ,GSEMatrix = T, getGPL = F)
   GEO_data <- Biobase::pData(gds[[1]])
+  utils::write.table(GEO_data, file = here("data-raw/GEO_data.csv"), row.names = F)
+  GEO_counts <- GEOquery::getGEOSuppFiles(GEOID, makeDirectory = F, baseDir = here("data-raw/"))
   return(GEO_data)
 }
 
 #' Generate metadata
-#'
-#' @param GEO_data A data.frame containing the information about the experiment.
 #'
 #' @param characteristics_list  vector with the terms you wish to include in your metadata-file.
 #' Can be things like group, ID, gender. Check the output of the function download_GEO_file.
 #'
 #' @return
 
-generate_metadata <- function(GEO_data, characteristics_list){
+generate_metadata <- function(characteristics_list){
+  GEO_data <- vroom::vroom(here("data-raw/GEO_data.csv"))
   metadata <- GEO_data[characteristics_list]
-  write.table(metadata, file = "metadata.csv", )
+  utils::write.table(metadata, file = here("data-raw/metadata.csv"))
   return(metadata)
 }
 
-#' GEOdownloader
+#' count_matrix_loader
 #'
-#' @param GEOID An ID for the GEO database https://www.ncbi.nlm.nih.gov/geo/
-#' @param metadata a metadata table containing relevant parameters for the experiment
+#' @param file_type your raw data file type (presently optimized for txt)
 #'
 #' @return a count matrix containing raw count values for the experiment with group annotations.
 
-GEODownloader <- function(GEOID, metadata){
-  geo_download <- GEOquery::getGEOSuppFiles(GEOID, makeDirectory = F,baseDir = here("data-raw/"))
-
+count_matrix_assembly <- function(file_type){
   geo_file <- fs::dir_ls(here("data-raw/"),
-                     regexp = "txt",
+                     regexp = file_type,
                      recurse = TRUE)
 
   count_matrix <- vroom::vroom(geo_file)
@@ -50,12 +49,13 @@ GEODownloader <- function(GEOID, metadata){
   count_matrix <- count_matrix %>%
     dplyr::select(-1)
   rownames(count_matrix) <- matrix_key
+  utils::write.table(count_matrix,
+              file = here("data-raw/count_matrix.csv"),
+              row.names = T,
+              col.names = T)
  return(count_matrix)
 }
 
-  column_order = t(count_matrix[1,])
-  column_order <- as.data.frame(column_order)
-  column_order[1,]<- as.character(column_order[1,])
 
 #' ID annotator
 #'
@@ -64,6 +64,7 @@ GEODownloader <- function(GEOID, metadata){
 #' @param Group Group/condition for the sample
 #'
 #' @return returns ID mapped to disease condition. Can be used to organize the alignment
+
 ID_key_generator <- function(metadata, ID, Group){
   column_ID <- metadata %>%
     select(c(ID, Group))
