@@ -11,6 +11,7 @@ library(here)
 #'
 #' @return A table with all the available metadata. Can be used to select relevant parameters for the metadata file.
 
+
 download_GEO_file <- function(GEOID){
   gds <- GEOquery::getGEO(GEOID ,GSEMatrix = T, getGPL = F)
   GEO_data <- Biobase::pData(gds[[1]])
@@ -29,7 +30,7 @@ download_GEO_file <- function(GEOID){
 generate_metadata <- function(characteristics_list){
   GEO_data <- vroom::vroom(here("data-raw/GEO_data.csv"))
   metadata <- GEO_data[characteristics_list]
-  utils::write.table(metadata, file = here("data-raw/metadata.csv"))
+  utils::write.table(metadata, file = here("data-raw/metadata.csv"), row.names = F)
   return(metadata)
 }
 
@@ -65,7 +66,9 @@ count_matrix_assembly <- function(file_type){
 #'
 #' @return returns ID mapped to disease condition. Can be used to organize the alignment
 
-ID_key_generator <- function(metadata, ID, Group){
+ID_key_generator <- function(ID, Group){
+  metadata <- vroom::vroom(here("data-raw/metadata.csv"),
+                           delim = " ")
   column_ID <- metadata %>%
     select(c(ID, Group))
   return(column_ID)
