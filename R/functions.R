@@ -46,16 +46,13 @@ count_matrix_assembly <- function(file_type){
                      recurse = TRUE)
 
   count_matrix <- vroom::vroom(geo_file)
-  matrix_key <- count_matrix$key
-  count_matrix <- count_matrix %>%
-    dplyr::select(-1)
-  rownames(count_matrix) <- matrix_key
   utils::write.table(count_matrix,
-              file = here("data-raw/count_matrix.csv"),
-              row.names = T,
-              col.names = T)
+                     file = here("data-raw/count_matrix.csv"),
+                     row.names = F,
+                     col.names = T)
+
  return(count_matrix)
-}
+  }
 
 
 #' ID annotator
