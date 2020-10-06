@@ -11,9 +11,9 @@
 
 # Load in the count matrix
 count_matrix <- count_matrix_load("count_matrix.csv")
-metadata_test <- load_metadata("metadata.csv",count_matrix)
+metadata <- load_metadata("metadata.csv",count_matrix)
 
-design_matrix_test <- Generate_design_matrix(metadata_test)
+design_matrix <- Generate_design_matrix(metadata)
 
 #use the design matrix to make a relevant contrast matrix
 cont.matrix <- limma::makeContrasts(
@@ -21,8 +21,10 @@ cont.matrix <- limma::makeContrasts(
   obese_vs_NAFLD = obese-NAFLD,
   NASH_vs_NAFLD = NASH-NAFLD,
   obese_vs_healthy = obese-healthy,
-  levels = design)
+  levels = design_matrix)
 
 
+RNAseq_data <- RNAseq_processing(count_matrix, metadata, design_matrix,cont.matrix)
 
+results<- lapply(RNAseq_data,annotated_dgeResults)
 
