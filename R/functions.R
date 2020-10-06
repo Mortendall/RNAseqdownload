@@ -4,6 +4,19 @@ library(fs)
 library(vroom)
 library(Biobase)
 library(here)
+library(GEOquery)
+library(tidyverse)
+library(fs)
+library(vroom)
+library(Biobase)
+library(here)
+library(magrittr)
+library(data.table)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(edgeR)
+library(openxlsx)
+
 
 #' Download GEO files
 #'
@@ -142,6 +155,7 @@ Generate_design_matrix <- function(metadata){
 #' @return
 
 RNAseq_processing <- function(count_matrix, metadata, design, contrast_matrix) {
+  group <- as.matrix(metadata[3])
   RNAseq <- DGEList(counts = count_matrix, group = group)
   keep <- filterByExpr(RNAseq)
   RNAseq <- RNAseq[keep, , keep.lib.sizes = F]
