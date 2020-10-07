@@ -5,49 +5,128 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(GEOquery)
 library(tidyverse)
 library(fs)
 library(vroom)
+library(Biobase)
+library(here)
+library(magrittr)
+library(data.table)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(edgeR)
+library(openxlsx)
 
 ```
 
-##Function to download GEO data
+
+
+
 ```{r}
-gds <- getGEO("GSE126848",GSEMatrix = T, getGPL = F)
-
-metadata <- pData(gds$GSE126848_series_matrix.txt.gz)[idxRNA, c( "gender:ch1", "disease:ch1", "description")]
-write.table(metadata, file = "metadata.csv")
 
 
-geoFile <- getGEOSuppFiles("GSE126848", makeDirectory = F,baseDir = here("data-raw/"))
-
-geo_file <- dir_ls(here("data-raw/"), 
-                          regexp = "txt", 
-                          recurse = TRUE)
-
-count_matrix <- vroom(geo_file)
 
 
-matrix_key <- count_matrix$key
-count_matrix <- count_matrix %>% 
-  dplyr::select(-1)
+empty_list <- vector(mode = "list",length = 4)
 
-rownames(count_matrix) <- matrix_key
-View(count_matrix)
+empty_list[[1]]<- results[[1]]
+for (i in 1:4){
+  empty_list[[i]]<- results[[i]] %>% 
+    filter(FDR<0.05) 
+} 
+for (i in 1:4){
+    names(empty_list)[i]<-names(results)[i]
+}
 
-column_order = t(count_matrix[1,])
-column_order <- as.data.frame(column_order)
-column_order[1,]<- as.character(column_order[1,])
+bg_list <- results[[1]][[7]] 
+  bg_list = clusterProfiler::bitr(
+  bg_list,
+  fromType = "SYMBOL",
+  toType = "ENTREZID",
+  OrgDb = "org.Hs.eg.db",
+  drop = T
+)
 
-column_ID <- metadata %>% 
-  select(c(description, `disease:ch1`)) 
-colnames(column_ID)[1] = "key"
 
-column_order <- left_join(column_order,column_ID, by = "key")
+eg <- vector(mode = "list",length = 4)
 
-count_matrix_anno <- count_matrix
-colnames(count_matrix_anno) <- count_matrix_anno[1,]
-count_matrix_anno[1,] <- column_order[,2]
+for (i in 1:4) {
+  eg[[i]] <- clusterProfiler::bitr(
+    empty_list[[i]][[7]],
+    fromType = "SYMBOL",
+    toType = "ENTREZID",
+    OrgDb = "org.Hs.eg.db",
+    drop = T
+  )
+}
+
+for (i in 1:4){
+    names(eg)[i]<-names(results)[i]
+}
+
+names(eg[1])<-""
+
+goResults <- vector(mode = "list",length = 4)
+
+for (i in 1:4){
+goResults <- enrichGO(gene = eg[[3]]$ENTREZID,
+                      universe = bg$ENTREZID,
+                      OrgDb = org.Hs.eg.db,
+                      ont = "BP")
+}
+
+
+
+
+plot_test <- dotplot(goResults)
+plot_test
+goResults <- setReadable(goResults, OrgDb = org.Hs.eg.db, keyType="ENTREZID")
+write.xlsx(goResults@result, file = here("data/NASH_NAFLD_GOterms.xlsx"), asTable = TRUE)
+cnet <- cnetplot(goResults)
+
+
+
+```
+
+
+```{r}
+goTerms <- goResults@results[1] %>%
+  filter(ID == "GO:0009435"	)
+View(goTerms)
+NADGenes <- goTerms$geneID
+NADGenes_list <- unlist(strsplit(NADGenes, "/"))
+
+significant_NAD_terms <- resultTable %>%
+  filter(rownames(resultTable) %in% NADGenes_list)
+View(significant_NAD_terms)
+
+Selected_candidates <- c("NAMPT", 
+                         "NMNAT1", 
+                         "NMNAT2", 
+                         "NMNAT3", 
+                         "NMRK1", 
+                         "NMRK2", 
+                         "NADSYN1", 
+                         "NADSYN", 
+                         "TDO2", 
+                         "IDO", 
+                         "NAPRT", 
+                         "SIRT1", 
+                         "SIRT3", 
+                         "PARP1", 
+                         "CD38", 
+                         "NNMT", 
+                         "NADK", 
+                         "HADH", 
+                         "KMO",
+                         "AFMID")
+NAD_screen <- resultTable %>%
+  filter(rownames(resultTable) %in% Selected_candidates)
+View(NAD_screen)
+
+ggplot(NAD_screen, aes(x = logFC, y = -log10(adj.P.Val))) +
+  geom_point()
 
 ```
 
