@@ -189,3 +189,43 @@ annotated_dgeResults <- function(Results_file) {
   dat <- dplyr::full_join(dat, ens2symbol)
   return(dat)
 }
+
+#' Gene ontology enrichment analysis of genes generated from a results file
+#'
+#' @param result_list list of data.tables generated from edgeR. Must be data.table and contain a SYMBOL annotation column
+#'
+#' @return a list containing enrichresults for each element in the results file list
+
+goAnalysis <- function(result_list){
+  bg_list <- result_list[[1]][,"SYMBOL"]
+  bg_list = clusterProfiler::bitr(
+    bg_list$SYMBOL,
+    fromType = "SYMBOL",
+    toType = "ENTREZID",
+    OrgDb = "org.Hs.eg.db",
+    drop = T
+  )
+  goResult_list <- vector(mode = "list", length = length(result_list))
+  for(i in 1:length(result_list)){
+    sig_list<- result_list[[i]] %>%
+      filter(FDR<0.05)
+
+    eg <- clusterProfiler::bitr(
+      sig_list$SYMBOL,
+      fromType = "SYMBOL",
+      toType = "ENTREZID",
+      OrgDb = "org.Hs.eg.db",
+      drop = T
+    )
+    goResults <- enrichGO(gene = eg$ENTREZID,
+                          universe = bg$ENTREZID,
+                          OrgDb = org.Hs.eg.db,
+                          ont = "BP")
+    goResult_list[[i]]<- goResults
+  }
+  for (i in 1:length(goResult_list)){
+    names(goResult_list)[i]<-names(result_list)[i]
+  }
+  return(goResult_list)
+
+}
