@@ -28,3 +28,10 @@ RNAseq_data <- RNAseq_processing(count_matrix, metadata, design_matrix,cont.matr
 
 results<- lapply(RNAseq_data,annotated_dgeResults)
 
+#write.xlsx(results, file = here("data/edgeR.xlsx"), asTable = TRUE)
+
+goAnalysis(results)
+
+
+
+

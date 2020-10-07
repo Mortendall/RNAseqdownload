@@ -25,57 +25,10 @@ library(openxlsx)
 
 ```{r}
 
-
-
-
-empty_list <- vector(mode = "list",length = 4)
-
-empty_list[[1]]<- results[[1]]
-for (i in 1:4){
-  empty_list[[i]]<- results[[i]] %>% 
-    filter(FDR<0.05) 
-} 
-for (i in 1:4){
-    names(empty_list)[i]<-names(results)[i]
-}
-
-bg_list <- results[[1]][[7]] 
-  bg_list = clusterProfiler::bitr(
-  bg_list,
-  fromType = "SYMBOL",
-  toType = "ENTREZID",
-  OrgDb = "org.Hs.eg.db",
-  drop = T
-)
-
-
-eg <- vector(mode = "list",length = 4)
-
+goTables <- vector(mode = "list", length = 4)
 for (i in 1:4) {
-  eg[[i]] <- clusterProfiler::bitr(
-    empty_list[[i]][[7]],
-    fromType = "SYMBOL",
-    toType = "ENTREZID",
-    OrgDb = "org.Hs.eg.db",
-    drop = T
-  )
+  goTables[[i]]<- goTest[[i]]@result
 }
-
-for (i in 1:4){
-    names(eg)[i]<-names(results)[i]
-}
-
-names(eg[1])<-""
-
-goResults <- vector(mode = "list",length = 4)
-
-for (i in 1:4){
-goResults <- enrichGO(gene = eg[[3]]$ENTREZID,
-                      universe = bg$ENTREZID,
-                      OrgDb = org.Hs.eg.db,
-                      ont = "BP")
-}
-
 
 
 
@@ -91,16 +44,16 @@ cnet <- cnetplot(goResults)
 
 
 ```{r}
-goTerms <- goResults@results[1] %>%
+goTerms <- goResults@result %>%
   filter(ID == "GO:0009435"	)
 View(goTerms)
 NADGenes <- goTerms$geneID
 NADGenes_list <- unlist(strsplit(NADGenes, "/"))
 
-significant_NAD_terms <- resultTable %>%
-  filter(rownames(resultTable) %in% NADGenes_list)
+significant_NAD_terms <- results %>%
+  filter(rownames(results[[3]]) %in% NADGenes_list)
 View(significant_NAD_terms)
-
+View(results)
 Selected_candidates <- c("NAMPT", 
                          "NMNAT1", 
                          "NMNAT2", 
@@ -121,11 +74,10 @@ Selected_candidates <- c("NAMPT",
                          "HADH", 
                          "KMO",
                          "AFMID")
-NAD_screen <- resultTable %>%
-  filter(rownames(resultTable) %in% Selected_candidates)
-View(NAD_screen)
+NAD_screen <- results[[3]] %>%
+  filter(results[[3]]$SYMBOL %in% Selected_candidates)
 
-ggplot(NAD_screen, aes(x = logFC, y = -log10(adj.P.Val))) +
+ggplot(NAD_screen, aes(x = logFC, y = -log10(FDR))) +
   geom_point()
 
 ```
