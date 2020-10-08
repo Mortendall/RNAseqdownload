@@ -229,3 +229,27 @@ goAnalysis <- function(result_list){
   return(goResult_list)
 
 }
+
+#' File exporter - exports GOresults as an excel sheet, and prints dotplot and cnet plots
+#'
+#' @param goList a list object containing one or more enrichResults
+#'
+#' @return
+
+printGOterms <- function(goList){
+  goSheets<- vector(mode = "list", length = length(goList))
+  for (i in 1:length(goSheets)){
+    goSheets[[i]] <- goList[[i]]@result
+    names(goSheets)[i]<-names(goList)[i]
+  }
+  write.xlsx(goSheets, file = here("data/NASH_NAFLD_GOterms.xlsx"), asTable = TRUE)
+  dir.create(here("data/figures"), showWarnings = F)
+  for (i in 1:length(goList)){
+    dotplot <- dotplot(goList[[i]], title = names(goList)[i],size = 1)
+    ggsave(dotplot, filename = paste(here("data/figures"),"/dotplot_",names(goList[i]),".png", sep = ""),width = 12, height = 12, units = "cm", scale = 2.5)
+    goList_anno <- setReadable(goList[[i]], OrgDb = org.Hs.eg.db, keyType="ENTREZID")
+    cnetplot <- cnetplot(goList_anno, title = names(goList)[i], size = 1)
+    ggsave(cnetplot, filename = paste(here("data/figures"),"/cnetplot_",names(goList[i]),".png", sep = ""),scale = 2.5)
+  }
+}
+
