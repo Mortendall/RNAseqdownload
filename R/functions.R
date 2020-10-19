@@ -80,7 +80,7 @@ ID_key_generator <- function(ID, Group){
   metadata <- vroom::vroom(here("data-raw/metadata.csv"),
                            delim = " ")
   column_ID <- metadata %>%
-    select(c(ID, Group))
+    dplyr::select(c(ID, Group))
   return(column_ID)
 }
 
@@ -96,7 +96,7 @@ count_matrix_load <- function(file) {
                           regexp = file,
                           recurse = T)
   count_matrix <- vroom::vroom(data_file)
-  colnames(count_matrix) <- str_remove(colnames(count_matrix), "^0+")
+  colnames(count_matrix) <- stringr::str_remove(colnames(count_matrix), "^0+")
   count_matrix_key <- count_matrix$key
   count_matrix <- count_matrix %>%
     dplyr::select(-key)
@@ -125,9 +125,9 @@ load_metadata <- function(file_name, count_matrix) {
       )
     )
   data_order <- colnames(count_matrix)
-  data_order <- as_tibble(data_order)
+  data_order <- dplyr::as_tibble(data_order)
   colnames(data_order) = "description"
-  metadata <- full_join(data_order, metadata, "description")
+  metadata <- dplyr::full_join(data_order, metadata, "description")
   return(metadata)
 }
 
@@ -139,9 +139,9 @@ load_metadata <- function(file_name, count_matrix) {
 
 Generate_design_matrix <- function(metadata){
   group <- as.matrix(metadata[3])
-  design <- model.matrix( ~ 0 + group, metadata)
+  design <- stats::model.matrix( ~ 0 + group, metadata)
   colnames(design) <-
-    str_remove_all(colnames(design), "\\(|\\)|group|:")
+    stringr::str_remove_all(colnames(design), "\\(|\\)|group|:")
   return(design)
 }
 
@@ -153,21 +153,21 @@ Generate_design_matrix <- function(metadata){
 #' @param contrast_matrix generated through the limma::makeContrast function
 #'
 #' @return
-
+as.data.ta
 RNAseq_processing <- function(count_matrix, metadata, design, contrast_matrix) {
   group <- as.matrix(metadata[3])
-  RNAseq <- DGEList(counts = count_matrix, group = group)
-  keep <- filterByExpr(RNAseq)
+  RNAseq <- edgeR::DGEList(counts = count_matrix, group = group)
+  keep <- edgeR::filterByExpr(RNAseq)
   RNAseq <- RNAseq[keep, , keep.lib.sizes = F]
-  RNAseq <- calcNormFactors(RNAseq)
-  RNAseq <- estimateDisp(RNAseq,design, robust = T)
-  et <- exactTest(RNAseq)
-  efit <- glmQLFit(RNAseq, design, robust = T)
+  RNAseq <- edgeR::calcNormFactors(RNAseq)
+  RNAseq <- edgeR::estimateDisp(RNAseq,design, robust = T)
+  et <- edgeR::exactTest(RNAseq)
+  efit <- edgeR::glmQLFit(RNAseq, design, robust = T)
   dgeResults <- apply(cont.matrix, 2, . %>%
-                        glmQLFTest(glmfit = efit, contrast = .) %>%
-                        topTags(n = Inf, p.value = 1) %>%
-                        extract2("table") %>%
-                        as.data.table(keep.rownames = TRUE))
+                        edgeR::glmQLFTest(glmfit = efit, contrast = .) %>%
+                        edgeR::topTags(n = Inf, p.value = 1) %>%
+                        magrittr::extract2("table") %>%
+                        data.table::as.data.table(keep.rownames = TRUE))
   return(dgeResults)
 }
 
@@ -208,7 +208,7 @@ goAnalysis <- function(result_list){
   goResult_list <- vector(mode = "list", length = length(result_list))
   for(i in 1:length(result_list)){
     sig_list<- result_list[[i]] %>%
-      filter(FDR<0.05)
+      dplyr::filter(FDR<0.05)
 
     eg <- clusterProfiler::bitr(
       sig_list$SYMBOL,
@@ -217,7 +217,7 @@ goAnalysis <- function(result_list){
       OrgDb = "org.Hs.eg.db",
       drop = T
     )
-    goResults <- enrichGO(gene = eg$ENTREZID,
+    goResults <- clusterProfiler::enrichGO(gene = eg$ENTREZID,
                           universe = bg$ENTREZID,
                           OrgDb = org.Hs.eg.db,
                           ont = "BP")
@@ -242,14 +242,13 @@ printGOterms <- function(goList){
     goSheets[[i]] <- goList[[i]]@result
     names(goSheets)[i]<-names(goList)[i]
   }
-  write.xlsx(goSheets, file = here("data/NASH_NAFLD_GOterms.xlsx"), asTable = TRUE)
+  openxlsx::write.xlsx(goSheets, file = here("data/NASH_NAFLD_GOterms.xlsx"), asTable = TRUE)
   dir.create(here("data/figures"), showWarnings = F)
   for (i in 1:length(goList)){
-    dotplot <- dotplot(goList[[i]], title = names(goList)[i],size = 1)
-    ggsave(dotplot, filename = paste(here("data/figures"),"/dotplot_",names(goList[i]),".png", sep = ""),width = 12, height = 12, units = "cm", scale = 2.5)
-    goList_anno <- setReadable(goList[[i]], OrgDb = org.Hs.eg.db, keyType="ENTREZID")
-    cnetplot <- cnetplot(goList_anno, title = names(goList)[i], size = 1)
-    ggsave(cnetplot, filename = paste(here("data/figures"),"/cnetplot_",names(goList[i]),".png", sep = ""),scale = 2.5)
+    dotplot <- enrichplot::dotplot(goList[[i]], title = names(goList)[i],size = 1)
+    ggplot2::ggsave(dotplot, filename = paste(here("data/figures"),"/dotplot_",names(goList[i]),".png", sep = ""),width = 12, height = 12, units = "cm", scale = 2.5)
+    goList_anno <- clusterProfiler::setReadable(goList[[i]], OrgDb = org.Hs.eg.db, keyType="ENTREZID")
+    cnetplot <- enrichplot::cnetplot(goList_anno, title = names(goList)[i], size = 1)
+    ggplot2::ggsave(cnetplot, filename = paste(here("data/figures"),"/cnetplot_",names(goList[i]),".png", sep = ""),scale = 2.5)
   }
 }
-
