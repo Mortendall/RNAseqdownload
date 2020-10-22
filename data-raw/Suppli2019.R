@@ -31,8 +31,8 @@ results<- lapply(RNAseq_data,annotated_dgeResults)
 #write.xlsx(results, file = here("data/edgeR.xlsx"), asTable = TRUE)
 
 goResult <- goAnalysis(results)
-
-printGOterms(goResult)
+View(goResult)
+#printGOterms(goResult)
 
 
 

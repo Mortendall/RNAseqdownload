@@ -153,7 +153,7 @@ Generate_design_matrix <- function(metadata){
 #' @param contrast_matrix generated through the limma::makeContrast function
 #'
 #' @return
-as.data.ta
+
 RNAseq_processing <- function(count_matrix, metadata, design, contrast_matrix) {
   group <- as.matrix(metadata[3])
   RNAseq <- edgeR::DGEList(counts = count_matrix, group = group)
@@ -218,7 +218,7 @@ goAnalysis <- function(result_list){
       drop = T
     )
     goResults <- clusterProfiler::enrichGO(gene = eg$ENTREZID,
-                          universe = bg$ENTREZID,
+                          universe = bg_list$ENTREZID,
                           OrgDb = org.Hs.eg.db,
                           ont = "BP")
     goResult_list[[i]]<- goResults

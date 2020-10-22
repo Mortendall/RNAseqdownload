@@ -60,21 +60,17 @@ printGOterms(goResults)
 
 
 ```{r}
-NAD_screener_terms <- goResult[["NAFLD_vs_healthy"]]@result %>% 
-  filter(str_detect(Description, "NAD"))
-
-  
-goTerms <- goResults@result %>%
-  filter(ID == "GO:0009435"	)
-View(goTerms)
-NADGenes <- goTerms$geneID
-NADGenes_list <- unlist(strsplit(NADGenes, "/"))
-
-significant_NAD_terms <- results %>%
-  filter(rownames(results[[3]]) %in% NADGenes_list)
-View(significant_NAD_terms)
-View(results)
-Selected_candidates <- c("NAMPT", 
+#' Title
+#'
+#' @param RNAlist 
+#' @param goList 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+NAD_terms_extractor <- function(RNAlist, goList){
+  Selected_candidates <- c("NAMPT", 
                          "NMNAT1", 
                          "NMNAT2", 
                          "NMNAT3", 
@@ -94,8 +90,39 @@ Selected_candidates <- c("NAMPT",
                          "HADH", 
                          "KMO",
                          "AFMID")
+  NAD_tables <- vector(mode = "list", length = 2 * length(goList))
+  for (i in length(goList)) {
+    NAD_tables[[i]] <- goList[[i]]@result %>%
+      filter(str_detect(Description, "NAD"))
+    names(NAD_tables[i]) <-
+      paste("NAD_terms", names(goList[i]), sep = "")
+    NAD_tables[[i + length(goList)]] <- RNAlist[[i]] %>%
+      filter(SYMBOL %in% Selected_candidates)
+    names(NAD_tables[i+length(RNAlist)]) <-
+      paste("NAD_genes", names(RNAlist[i]), sep = "")
+  }
+  return(NAD_tables)
+ 
+}
+
+NAD_test <- NAD_terms_extractor(results,goResult)
+
+View(NAD_test)
+
+  
+goTerms <- goResults@result %>%
+  filter(ID == "GO:0009435"	)
+View(goTerms)
+NADGenes <- goTerms$geneID
+NADGenes_list <- unlist(strsplit(NADGenes, "/"))
+
+significant_NAD_terms <- results %>%
+  filter(rownames(results[[3]]) %in% NADGenes_list)
+View(significant_NAD_terms)
+View(results)
+
 NAD_screen <- results[[3]] %>%
-  filter(results[[3]]$SYMBOL %in% Selected_candidates)
+  
 
 ggplot(NAD_screen, aes(x = logFC, y = -log10(FDR))) +
   geom_point()
