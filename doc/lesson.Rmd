@@ -24,42 +24,6 @@ library(openxlsx)
 
 
 ```{r}
-
-goTables <- vector(mode = "list", length = 4)
-for (i in 1:4) {
-  goTables[[i]]<- goTest[[i]]@result
-}
-
-
-
-plot_test <- dotplot(goResults)
-plot_test
-goResults <- setReadable(goResults, OrgDb = org.Hs.eg.db, keyType="ENTREZID")
-write.xlsx(goResults, file = here("data/NASH_NAFLD_GOterms.xlsx"), asTable = TRUE)
-cnet <- cnetplot(goResults)
-
-
-printGOterms(goTest) 
-
-dir.create(here("data/figures"), showWarnings = F)
-
-dotplot <- dotplot(goTest[[1]], )
-
-ggsave(dotplot, filename = paste("myplot","1",".png"))
-
-printGOterms(goResults)
-
- goSheets<- vector(mode = "list", length = length(goTest))
-  for (i in 1:length(goSheets)){
-    goSheets[[i]] <- goTest[[i]]@result
-    names(goSheets)[i]<-names(goTest)[i]
-  }
-  write.xlsx(goSheets, file = here("data/NASH_NAFLD_GOterms.xlsx"), asTable = TRUE)
-
-```
-
-
-```{r}
 #' Title
 #'
 #' @param RNAlist 
@@ -128,4 +92,6 @@ ggplot(NAD_screen, aes(x = logFC, y = -log10(FDR))) +
   geom_point()
 
 ```
+
+
 

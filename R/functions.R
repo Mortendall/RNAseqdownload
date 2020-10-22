@@ -197,14 +197,15 @@ annotated_dgeResults <- function(Results_file) {
 #' @return a list containing enrichresults for each element in the results file list
 
 goAnalysis <- function(result_list){
-  bg_list <- result_list[[1]][,"SYMBOL"]
-  bg_list = clusterProfiler::bitr(
-    bg_list$SYMBOL,
-    fromType = "SYMBOL",
-    toType = "ENTREZID",
-    OrgDb = "org.Hs.eg.db",
-    drop = T
-  )
+    bg <- result_list[[1]]
+    bg_list <- clusterProfiler::bitr(
+      bg$SYMBOL,
+      fromType = "SYMBOL",
+      toType = "ENTREZID",
+      OrgDb = "org.Hs.eg.db",
+      drop = T
+    )
+
   goResult_list <- vector(mode = "list", length = length(result_list))
   for(i in 1:length(result_list)){
     sig_list<- result_list[[i]] %>%
@@ -218,9 +219,9 @@ goAnalysis <- function(result_list){
       drop = T
     )
     goResults <- clusterProfiler::enrichGO(gene = eg$ENTREZID,
-                          universe = bg_list$ENTREZID,
-                          OrgDb = org.Hs.eg.db,
-                          ont = "BP")
+                                           universe = bg_list$ENTREZID,
+                                           OrgDb = org.Hs.eg.db,
+                                           ont = "BP")
     goResult_list[[i]]<- goResults
   }
   for (i in 1:length(goResult_list)){
